@@ -5,7 +5,7 @@
  *
  * 功能描述：使用百度 SVIP 账号获取真实下载地址，与 Pandownload 原版无关。
  *
- * 希望在使用时能够保留导航栏的 Github 感谢！
+ * 希望在使用时能够保留导航栏的 Made by Yuan_Tuo 感谢！
  *
  * 此项目 GitHub 地址：https://github.com/yuantuo666/baiduwp-php
  *
@@ -14,16 +14,21 @@
  * @link https://space.bilibili.com/88197958
  *
  */
-$programVersion_Index = "2.2.6";
+$programVersion_Index = "2.2.5";
 session_start();
 define('init', true);
-if (!file_exists('./common/invalidCheck.php')) {
+if (version_compare(PHP_VERSION, '7.0.0', '<')) {
 	http_response_code(503);
 	header('Content-Type: text/plain; charset=utf-8');
-	header('Refresh: 5;url=https://github.com/yuantuo666/baiduwp-php');
-	die("HTTP 503 服务不可用！\r\n缺少相关文件！无法正常运行程序！\r\n请重新 Clone 项目并进入此页面安装！\r\n将在五秒内跳转到 GitHub 储存库！");
+	header('Refresh: 5;url=https://www.php.net/downloads.php');
+	die("HTTP 503 服务不可用！\r\nPHP 版本过低！无法正常运行程序！\r\n请安装 7.0.0 或以上版本的 PHP！\r\n将在五秒内跳转到 PHP 官方下载页面！");
 }
-require('./common/invalidCheck.php');
+if (!file_exists('config.php')) {
+	http_response_code(503);
+	header('Content-Type: text/plain; charset=utf-8');
+	header('Refresh: 5;url=install.php');
+	die("HTTP 503 服务不可用！\r\n暂未安装此程序！\r\n将在五秒内跳转到安装程序！");
+}
 require('config.php');
 if ($programVersion_Index !== programVersion) {
 	http_response_code(503);
@@ -42,8 +47,8 @@ if (USING_DB == false and SVIPSwitchMod != 0) {
 $system_start_time = microtime(true);
 // 导入配置和函数
 
-require('./common/language.php');
-require('./common/functions.php');
+require('language.php');
+require('functions.php');
 // 通用响应头
 header('Content-Type: text/html; charset=utf-8');
 header('X-UA-Compatible: IE=edge,chrome=1');
@@ -82,30 +87,35 @@ if (DEBUG) {
 	<script src="static/color.js?v=<?php echo programVersion; ?>"></script>
 	<script src="static/functions.js?v=<?php echo programVersion; ?>"></script>
 	<script defer src="static/ready.js?v=<?php echo programVersion; ?>"></script>
-	<script>
-		var USING_DB = <?php echo USING_DB ? true : false; ?>;
-		var IsConfirmDownload = <?php echo IsConfirmDownload ? "true" : "false"; ?>;
-
-		function confirmdl(fs_id, timestamp, sign, randsk, share_id, uk) {
-			if (!USING_DB || !IsConfirmDownload) {
-				dl(fs_id, timestamp, sign, randsk, share_id, uk)
-				return
-			}
-
-			Swal.fire({
-				title: "<?php echo Language["ConfirmTitle"] ?>",
-				html: "<?php echo Language["ConfirmText"] ?>",
-				icon: "warning",
-				showCancelButton: true,
-				confirmButtonText: "<?php echo Language["ConfirmmButtonText"] ?>",
-				reverseButtons: true
-			}).then(function(e) {
-				if (e.isConfirmed) {
-					dl(fs_id, timestamp, sign, randsk, share_id, uk);
-				}
-			});
+	<?php
+	if (isset($_POST["surl"])) {
+		echo '<script>';
+		if (USING_DB and IsConfirmDownload) {
+			$Language = Language;
+			$JSCode['echo'](
+				<<<Function
+function confirmdl(fs_id, timestamp, sign, randsk, share_id, uk) {
+	Swal.fire({
+		title: "{$Language["ConfirmTitle"]}",
+		html: "{$Language["ConfirmText"]}",
+		icon: "warning",
+		showCancelButton: true,
+		confirmButtonText: "{$Language["ConfirmmButtonText"]}",
+		reverseButtons: true
+	}).then(function(e) {
+		if (e.isConfirmed) {
+			dl(fs_id, timestamp, sign, randsk, share_id, uk);
 		}
-	</script>
+	});
+}
+Function
+			);
+		} else {
+			echo 'let confirmdl = dl;';
+		}
+		echo '</script>';
+	}
+	?>
 </head>
 
 <body>
@@ -123,11 +133,14 @@ if (DEBUG) {
 			</div>
 		</div>
 	</nav>
-	<div class="container main">
+	<div class="container">
 		<?php
 		if (DEBUG) {
-			echo '<script>console.log("$_GET",' . json_encode($_GET) . ')</script>';
-			echo '<script>console.log("$_POST",' . json_encode($_POST) . ')</script>';
+			echo '<pre>$_GET:';
+			var_dump($_GET);
+			echo '$_POST:';
+			var_dump($_POST);
+			echo '</pre>';
 		}
 		if (isset($_GET["help"])) echo Language["HelpPage"]; // 帮助页
 		elseif (isset($_GET["usersettings"])) require("./common/usersettings.php"); // 用户设置页面
@@ -141,7 +154,7 @@ if (DEBUG) {
 	<?php
 	$system_end_time = microtime(true);
 	$system_runningtime = $system_end_time - $system_start_time;
-	echo "<script>console.log('后端计算时间 $system_runningtime 秒');</script>";
+	echo '<script>console.log("后端计算时间：' . $system_runningtime . '秒");</script>';
 	?>
 </body>
 
